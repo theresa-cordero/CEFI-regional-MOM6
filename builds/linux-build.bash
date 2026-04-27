@@ -5,27 +5,30 @@ machine_name="gaea"
 platform="ncrc5.intel23"
 target="repro"  # Options: repro, debug-openmp, prod, avx512, etc.
 flavor="mom6sis2"  # Options: mom6sis2, fms1_mom6sis2, mom6solo
+save="false"
 
 # Supported flavors and targets
 VALID_FLAVORS=("mom6sis2" "fms1_mom6sis2" "mom6solo")
 VALID_TARGETS=("repro" "debug" "prod")
 
 usage() {
-    echo "Usage: $0 -m <machine> -p <platform> -t <target> -f <flavor>"
+    echo "Usage: $0 -m <machine> -p <platform> -t <target> -f <flavor> -s <save>"
     echo "  -m : Machine name (e.g., gaea)"
     echo "  -p : Platform (e.g., ncrc5.intel23)"
     echo "  -t : Target (valid: repro, debug, prod)"
     echo "  -f : Flavor (valid: mom6sis2, fms1_mom6sis2, mom6solo)"
+    echo "  -s : If true, save existing executable"
     exit 1
 }
 
 # Parse command-line arguments
-while getopts "m:p:t:f:h" Option; do
+while getopts "m:p:t:f:s:h" Option; do
    case "$Option" in
       m) machine_name=${OPTARG};;
       p) platform=${OPTARG};;
       t) target=${OPTARG};;
       f) flavor=${OPTARG};;
+      s) save=${OPTARG};;
       h) usage; exit 0;;
    esac
 done
@@ -72,15 +75,31 @@ update_makeflags() {
     fi
 }
 
+# Function to clean up existing build
+clean_target_dir() {
+    if [[ $save =~ "save" ]]; then
+       now=$(date '+%Y%m%d%H%M')
+       echo "Using save option, the existing executable has been moved to ${target_dir}_${now}"
+       mv $target_dir ${target_dir}_${now}
+       mkdir -p $target_dir
+    fi
+    if [[ $save =~ "copy" ]]; then
+       now=$(date '+%Y%m%d%H%M')
+       echo "Using copy option, the existing executable has been copied to ${target_dir}_${now}"
+       cp -rp $target_dir ${target_dir}_${now}
+       mkdir -p $target_dir
+    fi
+    if [[ $save =~ "clean" ]]; then
+       [[ -d $target_dir ]] && rm -rf $target_dir
+       mkdir -p $target_dir
+    fi
+}
+
 # Function to build libyaml
 build_libyaml() {
     echo "Building libyaml..."
     local target_dir="$abs_rootdir/build/$machine_name-$platform/libyaml/$target"
-    
-    # Clean up existing build
-    [[ -d $target_dir ]] && rm -rf $target_dir
-    mkdir -p $target_dir
-    
+
     # Build libyaml
     pushd $srcdir/libyaml
     $srcdir/libyaml/bootstrap
@@ -137,7 +156,8 @@ build_mom6_fms2() {
     local target_dir="build/$machine_name-$platform/ocean_ice/$target"
     
     # Clean up and create directory
-    mkdir -p $target_dir
+    clean_target_dir $target_dir 
+    #mkdir -p $target_dir
     pushd $target_dir
     rm -f path_names
     $srcdir/mkmf/bin/list_paths $srcdir/MOM6/{config_src/infra/FMS2,config_src/memory/dynamic_symmetric,config_src/drivers/FMS_cap,config_src/external/MARBL,config_src/external/ODA_hooks,config_src/external/database_comms,config_src/external/drifters,config_src/external/stochastic_physics,pkg/GSW-Fortran/{modules,toolbox}/,src/{*,*/*}/} $srcdir/SIS2/{config_src/dynamic_symmetric,config_src/external/Icepack_interfaces,src} $srcdir/icebergs/src $srcdir/FMS/{coupler,include}/ $srcdir/{ocean_BGC/generic_tracers,ocean_BGC/generic_fluxes,ocean_BGC/mocsy/src}/ $srcdir/{atmos_null,ice_param,land_null,coupler/shared/,coupler/full/}/
@@ -165,7 +185,8 @@ build_mom6_fms1() {
     local target_dir="build/$machine_name-$platform/fms1_ocean_ice/$target"  # Corrected the directory to ocean_ice
     
     # Clean up and create directory
-    mkdir -p $target_dir
+    clean_target_dir $target_dir 
+    #mkdir -p $target_dir
     pushd $target_dir
     rm -f path_names
     $srcdir/mkmf/bin/list_paths $srcdir/MOM6/{config_src/infra/FMS1,config_src/memory/dynamic_symmetric,config_src/drivers/FMS_cap,config_src/external/MARBL,config_src/external/ODA_hooks,config_src/external/database_comms,config_src/external/drifters,config_src/external/stochastic_physics,pkg/GSW-Fortran/{modules,toolbox}/,src/{*,*/*}/} $srcdir/SIS2/{config_src/dynamic_symmetric,config_src/external/Icepack_interfaces,src} $srcdir/icebergs/src $srcdir/FMS/{coupler,include}/ $srcdir/{ocean_BGC/generic_tracers,ocean_BGC/generic_fluxes,ocean_BGC/mocsy/src}/ $srcdir/{atmos_null,ice_param,land_null,coupler/shared/,coupler/full/}/
@@ -193,7 +214,8 @@ build_mom6solo() {
     local target_dir="build/$machine_name-$platform/ocean_only/$target"
     
     # Clean up and create directory
-    mkdir -p $target_dir
+    clean_target_dir $target_dir 
+    #mkdir -p $target_dir
     pushd $target_dir
     rm -f path_names
     $srcdir/mkmf/bin/list_paths $srcdir/MOM6/{config_src/infra/FMS2,config_src/memory/dynamic_symmetric,config_src/drivers/solo_driver,config_src/external/GFDL_ocean_BGC,config_src/external/MARBL,config_src/external/ODA_hooks,config_src/external/database_comms,config_src/external/drifters,config_src/external/stochastic_physics,pkg/GSW-Fortran/{modules,toolbox}/,src/{*,*/*}}/

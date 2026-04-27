@@ -10,7 +10,18 @@
 #SBATCH --account=gfdl_med
 
 #
-[ -d "build" ] && rm -rf build
+save=${1:-clean}
+VALID_SAVES=("clean" "save" "copy") 
+if [[ ! " ${VALID_SAVES[@]} " =~ " ${save} " ]]; then
+    echo "❌ Invalid flavor: $save"
+    echo "Valid options: ${VALID_SAVES[*]}"
+    exit 1
+fi
+# Clean up existing build
+if [[ $save =~ "clean" ]]; then
+   [ -d "build" ] && rm -rf build
+   echo "Not using save option"
+fi
 
 #
 echo "Build MOM6SIS2-COBALT using container started:  " `date`
@@ -33,7 +44,7 @@ else
         -B /gpfs \
         -B $HOME:$HOME \
         "$img" \
-        bash linux-build.bash -m docker -p linux-intel -t repro -f mom6sis2
+        bash linux-build.bash -m docker -p linux-intel -t repro -f mom6sis2 -s $save
 fi
 
 #
