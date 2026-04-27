@@ -5,7 +5,7 @@ machine_name="gaea"
 platform="ncrc5.intel23"
 target="repro"  # Options: repro, debug-openmp, prod, avx512, etc.
 flavor="mom6sis2"  # Options: mom6sis2, fms1_mom6sis2, mom6solo
-save="false"
+save="clean"
 
 # Supported flavors and targets
 VALID_FLAVORS=("mom6sis2" "fms1_mom6sis2" "mom6solo")
@@ -17,7 +17,7 @@ usage() {
     echo "  -p : Platform (e.g., ncrc5.intel23)"
     echo "  -t : Target (valid: repro, debug, prod)"
     echo "  -f : Flavor (valid: mom6sis2, fms1_mom6sis2, mom6solo)"
-    echo "  -s : If true, save existing executable"
+    echo "  -s : Can be used to save existing executables (valid: clean, save, copy)"
     exit 1
 }
 
